@@ -1,15 +1,24 @@
 import { defineConfig } from 'tsup'
+import fs from 'fs'
+import path from 'path'
+
+
+const wrapperCode = fs.readFileSync(
+  path.resolve(__dirname, '../tourbuilder/dist/index.iife.js'),
+  'utf-8'
+);
 
 export default defineConfig({
   entry: ['src/index.tsx'],
   format: ['cjs', 'esm'],
-  dts: true,
+  dts: true, // We can keep this true now!
   splitting: false,
   sourcemap: true,
   clean: true,
-  // This is the crucial part:
-  // Update this to use the new, scoped package name.
   external: ['react', 'react-dom', '@multimediafabrik/tourbuilder'],
-  
-  inject: ['./src/react-shim.js'],
+
+  // This will replace the placeholder variables in your code with the actual file content.
+  env: {
+    __WRAPPER_CODE__: wrapperCode,
+  },
 })

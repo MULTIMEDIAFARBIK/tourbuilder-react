@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import debounce from "lodash.debounce";
-import tourbuilderWrapperCode from '../../tourbuilder/dist/index.iife.js?raw';
+declare const __PLAYER_CODE__: string;
+declare const __WRAPPER_CODE__: string;
 // --- Type Definitions ---
 export type PanoPosition = {
   basepath: string;
@@ -12,12 +13,13 @@ export type PanoPosition = {
 
 export interface PanoramaProps extends Partial<Omit<PanoPosition, 'basepath'>> {
   basepath: string;
+  children?: React.ReactNode;
   singleImage?: boolean;
   onPositionChange?: (position: PanoPosition) => void;
 }
 
 // --- The Public Sandbox Component ---
-export default function Panorama(props: PanoramaProps) {
+export default function Panorama({children,...props}: PanoramaProps) {
   const propsRef = useRef(props);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   propsRef.current = props;
@@ -27,12 +29,13 @@ export default function Panorama(props: PanoramaProps) {
     if (!onPositionChange) return () => {};
     return debounce(onPositionChange, 150);
   }, [props.onPositionChange]);
-    console.log(tourbuilderWrapperCode)
 
   const iframeUrl = useMemo(() => {
     // Import the plain JavaScript player file as raw text
 
     // CRITICAL: Import the COMPILED IIFE JavaScript bundle, NOT the source TypeScript file.
+    console.log(children?.toString());
+    const tourbuilderWrapperCode = __WRAPPER_CODE__;
 
     const serializedProps = JSON.stringify(propsRef.current);
     const html = `
@@ -51,12 +54,21 @@ export default function Panorama(props: PanoramaProps) {
                 const props = ${serializedProps};
                 const Pano360tyClass = window.Pano360ty.default || window.Pano360ty.Pano360ty || window.Pano360ty;
                 const tour = new Pano360tyClass('tour-container', props.basepath);
+                window.tour = tour;
                 
                 if (props.node != null) tour.setStartNode(props.node);
                 if (props.fov != null) tour.setFov(props.fov);
                 if (props.pan != null) tour.setPan(props.pan);
                 if (props.tilt != null) tour.setTilt(props.tilt);
                 tour.setSingleImage(!!props.singleImage);
+
+                tour.setImpressumVisibility(false);
+                tour.setImpressumVisibility_tablet(false);
+                tour.setImpressumVisibility_mobile(false);
+
+                tour.setShareButtonVisibility(false);
+                tour.setShareButtonVisibility_tablet(false);
+                tour.setShareButtonVisibility_mobile(false);
 
                 if (window.reportPosition) {
                   const positionListener = () => {
@@ -110,6 +122,49 @@ export default function Panorama(props: PanoramaProps) {
       window.removeEventListener('message', handleMessage);
     };
   }, [iframeUrl, debouncedOnPositionChange]);
+
+  const updatePosition = (key: keyof PanoPosition, value:number) => {
+      const iframe = iframeRef.current;
+    if (!iframe || !iframe.contentWindow) return;
+      let tourbuilder = (iframe.contentWindow as any).tour;
+      if (!tourbuilder || !tourbuilder.pano) return;
+      switch(key) {
+        case 'node':
+          tourbuilder.pano.openNext(`{node${value}}`);
+          break;
+        case 'fov':
+          tourbuilder.pano.setFov(value);
+          break;
+        case 'pan':
+          tourbuilder.pano.setPan(value);
+          break;
+        case 'tilt':
+          tourbuilder.pano.setTilt(value);
+          break;
+      }
+  }
+
+  useEffect(()=>{
+       if(!props.node) return;
+        updatePosition('node', props.node);
+  },[props.node])
+  useEffect(()=>{
+       if(!props.fov) return;
+        updatePosition('fov', props.fov);
+  },[props.fov])
+  useEffect(()=>{
+       if(!props.pan) return;
+        updatePosition('pan', props.pan);
+  },[props.pan])
+  useEffect(()=>{
+       if(!props.tilt) return;
+        updatePosition('tilt', props.tilt);
+  },[props.tilt])
+ useEffect(() => {
+    const iframe = iframeRef.current;
+    if (!iframe || !iframe.contentWindow) return;
+  (iframe.contentWindow as any).tour?.setActiveSingleImage(!!props.singleImage);
+  },[props.singleImage])
 
   return (
     <iframe
