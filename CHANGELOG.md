@@ -1,19 +1,33 @@
-# Changelog
+# **Changelog**
 
 All notable changes to this project will be documented in this file.
 
-## [0.1.13] - 2025-08-05
+## **\[0.1.14\] \- 2025-08-05**
 
-### Fixed
-- Resolved `ReferenceError` for `__WRAPPER_CODE__` in external projects by correcting the `tsup` build configuration.
-- Ensured the `pano2vr_player.js` script executes correctly when loaded into an iframe.
+### **Added**
 
-## [0.1.12] - 2025-08-04
+* Implemented the transition prop to allow for detailed configuration of node change effects.  
+* Added support for the children prop, enabling users to pass custom React components to serve as loading or cover elements.
 
-### Fixed
-- Solved build failures by correctly configuring the package for use in a monorepo.
-- Added support for raw file imports in the example app's Webpack config.
+## **\[0.1.13\] \- 2025-08-05**
 
-### Added
-- Implemented a self-contained iframe sandbox to prevent WebGL memory leaks.
-- Added the `onPositionChange` prop to receive debounced position updates.
+### **Fixed**
+
+* Resolved ReferenceError for \_\_WRAPPER\_CODE\_\_ in external projects by correcting the tsup build configuration.  
+* Ensured the pano2vr\_player.js script executes correctly when loaded into an iframe.
+
+### **Added**
+
+* Added README.md to explain usage
+
+## **\[0.1.12\] \- 2025-08-04**
+
+### **Fixed**
+
+* Solved build failures by correctly configuring the package for use in a monorepo.  
+* Added support for raw file imports in the example app's Webpack config.
+
+### **Added**
+
+* Implemented a self-contained iframe sandbox to prevent WebGL memory leaks.  
+* Added the onPositionChange prop to receive debounced position updates.
