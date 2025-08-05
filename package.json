@@ -1,6 +1,6 @@
 {
   "name": "@multimediafabrik/tour-react",
-  "version": "0.1.14",
+  "version": "0.1.15",
   "description": "React wrapper components for Tourbuilder",
   "files": [
     "dist",

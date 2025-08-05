@@ -1,7 +1,11 @@
 # **Changelog**
 
 All notable changes to this project will be documented in this file.
+## **\[0.1.15\] \- 2025-08-05**
 
+### **Added**
+
+* Added Tailwind support for the children prop
 ## **\[0.1.14\] \- 2025-08-05**
 
 ### **Added**
