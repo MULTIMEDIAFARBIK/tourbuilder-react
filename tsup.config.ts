@@ -15,7 +15,7 @@ export default defineConfig({
   splitting: false,
   sourcemap: true,
   clean: true,
-  external: ['react', 'react-dom', '@multimediafabrik/tourbuilder'],
+  external: ['react', 'react-dom', '@multimediafabrik/tour'],
 
   // This will replace the placeholder variables in your code with the actual file content.
   env: {

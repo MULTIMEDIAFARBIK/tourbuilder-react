@@ -1,5 +1,5 @@
 {
-  "name": "@multimediafabrik/tourbuilder-react",
+  "name": "@multimediafabrik/tour-react",
   "version": "0.1.12",
   "description": "React wrapper components for Tourbuilder",
   "files": [
@@ -21,7 +21,7 @@
     "react-dom": ">=18.0.0"
   },
   "dependencies": {
-    "@multimediafabrik/tourbuilder": "0.1.1",
+    "@multimediafabrik/tour": "^0.1.1",
     "lodash.debounce": "^4.0.8"
   },
   "devDependencies": {
