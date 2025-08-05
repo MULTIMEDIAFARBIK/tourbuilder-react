@@ -15,10 +15,15 @@ export default defineConfig({
   splitting: false,
   sourcemap: true,
   clean: true,
-  external: ['react', 'react-dom', '@multimediafabrik/tour'],
+  external: ['react', 'react-dom'],
 
   // This will replace the placeholder variables in your code with the actual file content.
-  env: {
-    __WRAPPER_CODE__: wrapperCode,
+esbuildOptions(options) {
+    options.define = {
+      ...options.define,
+      // The JSON.stringify is crucial to ensure the content is treated as a string literal.
+      '__WRAPPER_CODE__': JSON.stringify(wrapperCode),
+    }
+    return options
   },
 })
