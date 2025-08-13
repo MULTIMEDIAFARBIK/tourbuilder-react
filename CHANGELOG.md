@@ -36,17 +36,21 @@ All notable changes to this project will be documented in this file.
 * Implemented a self-contained iframe sandbox to prevent WebGL memory leaks.  
 * Added the onPositionChange prop to receive debounced position updates.
 
-## **\[0.2\] \- 2025-08-04**
+## **\[0.2\] \- 2025-08-13**
 
 ### **Fixed**
   
 * Fixed onPositionChange not firing when position is updated
 
-### **Added**
-
-## **\[0.2.1\] \- 2025-08-04**
+## **\[0.2.1\] \- 2025-08-13**
 
 ### **Fixed**
   
 * onPositionChange now fires at load
 * Fixed race conditions breaking position updates on basepath changes
+
+## **\[0.2.2\] \- 2025-08-13**
+
+### **Fixed**
+  
+* fixed position periodically jumping back to starting position after user moves

@@ -33,6 +33,8 @@ export function buildIframeHtml(props: PanoramaSerializableProps) {
           const tour = new Pano360tyClass('tour-container', props.basepath);
           window.tour = tour;
 
+          // (interaction tracking removed for now to avoid interfering with load)
+
           if (props.node != null) tour.setStartNode(props.node);
           if (props.fov != null) tour.setFov(props.fov);
           if (props.pan != null) tour.setPan(props.pan);
