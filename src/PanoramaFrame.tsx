@@ -32,8 +32,10 @@ export function PanoramaFrame({
 
   const iframeUrl = usePanoramaIframe(basepath ? { ...panoramaProps, basepath } : null);
 
-  // Apply controls for active frame or preloading frame (so it starts with correct view).
-  const applyControls = !!basepath && (active || basepath === desiredBasepath);
+  // Apply controls ONLY for the frame whose basepath is the current desired basepath.
+  // This prevents node/fov/pan/tilt updates from being applied to the old (outgoing) basepath
+  // when basepath and position props change in the same render.
+  const applyControls = !!basepath && basepath === desiredBasepath;
   usePanoramaControls(iframeRef, basepath ? { ...panoramaProps, basepath } : null, applyControls);
 
   useEffect(() => {

@@ -80,6 +80,8 @@ export function buildIframeHtml(props: PanoramaSerializableProps) {
                   try { window.__imagesReady(); } catch(e) { console.error(e); }
                 }
               });
+              // Fire an initial position once after everything is set up so parent gets initial state.
+              try { positionListener(); } catch(e) { console.error(e); }
             }
           });
         } catch (e) {
