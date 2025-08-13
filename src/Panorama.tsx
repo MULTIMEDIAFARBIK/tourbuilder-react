@@ -102,30 +102,32 @@ export default function Panorama({ children, ...props }: PanoramaProps) {
                 tour.setImpressumVisibility_tablet(false);
                 tour.movement_params.movementAborted = true;
 
-                if (window.reportPosition) {
-                  const positionListener = () => {
-                    if (!tour.pano) return;
-                    const pos = {
-                      basepath: tour.pano.getBasePath(),
-                      node: parseInt(tour.pano.getCurrentNode().replace('node', '')),
-                      fov: tour.pano.getFov(),
-                      pan: tour.pano.getPan(),
-                      tilt: tour.pano.getTilt(),
-                    };
-                    window.reportPosition(pos);
+                const positionListener = () => {
+                  if (!tour.pano) return;
+                  const pos = {
+                    basepath: tour.pano.getBasePath(),
+                    node: parseInt(tour.pano.getCurrentNode().replace('node', '')),
+                    fov: Math.round(tour.pano.getFov() * 100) / 100,
+                    pan: Math.round(tour.pano.getPan() * 100) / 100,
+                    tilt: Math.round(tour.pano.getTilt() * 100) / 100,
                   };
+                  if (window.reportPosition) {
+                    window.reportPosition(pos);
+                  } else {
+                    // Cache last position until reportPosition is injected from parent
+                    window.__lastPanoPosition = pos;
+                  }
+                };
 
-                  tour.init().then(() => {
-                    if (tour.pano) {
-                      tour.pano.stopAutorotate();
-                      if(props.transition) tour.pano.setTransition(props.transition);
-                      tour.pano.addListener("positionchanged", positionListener);
-                      tour.pano.addListener("changenode", positionListener);
-                    }
-                  });
-                } else {
-                  tour.init();
-                }
+                tour.init().then(() => {
+                  if (tour.pano) {
+                    tour.pano.stopAutorotate();
+                    if(props.transition) tour.pano.setTransition(props.transition);
+                    tour.pano.addListener("positionchanged", positionListener);
+                    tour.pano.addListener("changenode", positionListener);
+                    // If the parent sets reportPosition later, it can read window.__lastPanoPosition
+                  }
+                });
               } catch (e) {
                 console.error('Error initializing tour inside iframe:', e);
               }
@@ -159,6 +161,19 @@ export default function Panorama({ children, ...props }: PanoramaProps) {
       URL.revokeObjectURL(iframeUrl);
     };
   }, [iframeUrl, debouncedOnPositionChange]);
+
+  // Keep the callback in sync even if onPositionChange changes after the iframe finished loading
+  useEffect(() => {
+    const iframe = iframeRef.current;
+    if (!iframe || !iframe.contentWindow) return;
+    (iframe.contentWindow as any).reportPosition = debouncedOnPositionChange;
+    // Flush any cached last position if it exists (set before reportPosition became available)
+    const last = (iframe.contentWindow as any).__lastPanoPosition;
+    if (last) {
+      debouncedOnPositionChange(last);
+      (iframe.contentWindow as any).__lastPanoPosition = undefined;
+    }
+  }, [debouncedOnPositionChange]);
 
   const updatePosition = (key: keyof PanoPosition, value: number) => {
     const iframe = iframeRef.current;
