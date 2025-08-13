@@ -1,145 +1,20 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import debounce from "lodash.debounce";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-declare const __PLAYER_CODE__: string;
-declare const __WRAPPER_CODE__: string;
-// --- Type Definitions ---
-export type PanoPosition = {
-  basepath: string;
-  node: number;
-  fov: number;
-  pan: number;
-  tilt: number;
-};
-
-export type TransitionSettings = {
-  type:
-    | "cut"
-    | "crossdissolve"
-    | "diptocolor"
-    | "irisround"
-    | "irisrectangular"
-    | "wipeleftright"
-    | "wiperightleft"
-    | "wipetopbottom"
-    | "wipebottomtop"
-    | "wiperandom";
-  before?: 0 | 2; // 0 for none, 2 for zoomin
-  after?: 0 | 2 | 3 | 4; // 0 for none, 2 for zoomin, 3 for zoomout, 4 for flyin
-  transitiontime?: number;
-  waitfortransition?: boolean;
-  zoomedfov?: number;
-  zoomspeed?: number;
-  dipcolor?: string; // e.g., '0xff0000' for red
-  softedge?: number;
-};
-export interface PanoramaProps extends Partial<Omit<PanoPosition, "basepath">> {
-  basepath: string;
-  children?: React.ReactNode;
-  singleImage?: boolean;
-  transition?: TransitionSettings;
-  onPositionChange?: (position: PanoPosition) => void;
-}
+import { useDebouncedCallback } from "./hooks/useDebouncedCallback";
+import { usePanoramaIframe } from "./hooks/usePanoramaIframe";
+import type { PanoramaProps } from "./types";
+import { usePanoramaControls } from "./hooks/usePanoramaControls";
 
 export default function Panorama({ children, ...props }: PanoramaProps) {
-  const propsRef = useRef(props);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [mountNode, setMountNode] = useState<HTMLElement | null>(null);
 
-  propsRef.current = props;
+  const debouncedOnPositionChange = useDebouncedCallback(
+    props.onPositionChange,
+    150,
+  );
 
-  const debouncedOnPositionChange = useMemo(() => {
-    const { onPositionChange } = propsRef.current;
-    if (!onPositionChange) return () => {};
-    return debounce(onPositionChange, 150);
-  }, [props.onPositionChange]);
-
-  const iframeUrl = useMemo(() => {
-    console.log(children?.toString());
-    const tourbuilderWrapperCode = __WRAPPER_CODE__;
-
-    const serializedProps = JSON.stringify(propsRef.current);
-    const html = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>Panorama</title>
-          <script src="https://cdn.tailwindcss.com"></script>
-          <style>html, body, #tour-container { position: relative; margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; } #children-container { position: absolute; top: 0; left: 0; right: 0; bottom: 0; }</style>
-        </head>
-        <body>
-          <div id="tour-container">
-            <div id="children-container"></div>
-          </div>
-          <script>${tourbuilderWrapperCode}</script>
-          <script>
-            document.addEventListener('DOMContentLoaded', function() {
-              try {
-                const props = ${serializedProps};
-                const Pano360tyClass = window.Pano360ty.default || window.Pano360ty.Pano360ty || window.Pano360ty;
-                const tour = new Pano360tyClass('tour-container', props.basepath);
-                window.tour = tour;
-                
-                if (props.node != null) tour.setStartNode(props.node);
-                if (props.fov != null) tour.setFov(props.fov);
-                if (props.pan != null) tour.setPan(props.pan);
-                if (props.tilt != null) tour.setTilt(props.tilt);
-                tour.setSingleImage(!!props.singleImage);
-
-                tour.setImpressumVisibility(false);
-                tour.setImpressumVisibility_tablet(false);
-                tour.setImpressumVisibility_mobile(false);
-
-                tour.setShareButtonVisibility(false);
-                tour.setShareButtonVisibility_tablet(false);
-                tour.setShareButtonVisibility_mobile(false);
-
-                tour.setHeight("100%");
-                tour.setHeight_mobile("100%");
-                tour.setHeight_tablet("100%");
-                tour.setImpressumVisibility(false);
-                tour.setImpressumVisibility_mobile(false);
-                tour.setImpressumVisibility_tablet(false);
-                tour.movement_params.movementAborted = true;
-
-                const positionListener = () => {
-                  if (!tour.pano) return;
-                  const pos = {
-                    basepath: tour.pano.getBasePath(),
-                    node: parseInt(tour.pano.getCurrentNode().replace('node', '')),
-                    fov: Math.round(tour.pano.getFov() * 100) / 100,
-                    pan: Math.round(tour.pano.getPan() * 100) / 100,
-                    tilt: Math.round(tour.pano.getTilt() * 100) / 100,
-                  };
-                  if (window.reportPosition) {
-                    window.reportPosition(pos);
-                  } else {
-                    // Cache last position until reportPosition is injected from parent
-                    window.__lastPanoPosition = pos;
-                  }
-                };
-
-                tour.init().then(() => {
-                  if (tour.pano) {
-                    tour.pano.stopAutorotate();
-                    if(props.transition) tour.pano.setTransition(props.transition);
-                    tour.pano.addListener("positionchanged", positionListener);
-                    tour.pano.addListener("changenode", positionListener);
-                    // If the parent sets reportPosition later, it can read window.__lastPanoPosition
-                  }
-                });
-              } catch (e) {
-                console.error('Error initializing tour inside iframe:', e);
-              }
-            });
-          </script>
-        </body>
-      </html>
-    `;
-
-    const blob = new Blob([html], { type: "text/html" });
-    return URL.createObjectURL(blob);
-  }, [props.basepath]); // Recreate the iframe only when basepath changes
+  const iframeUrl = usePanoramaIframe(props);
 
   useEffect(() => {
     const iframe = iframeRef.current;
@@ -156,10 +31,7 @@ export default function Panorama({ children, ...props }: PanoramaProps) {
     };
 
     iframe.addEventListener('load', handleLoad);
-    return () => {
-      iframe.removeEventListener('load', handleLoad);
-      URL.revokeObjectURL(iframeUrl);
-    };
+  return () => iframe.removeEventListener('load', handleLoad);
   }, [iframeUrl, debouncedOnPositionChange]);
 
   // Keep the callback in sync even if onPositionChange changes after the iframe finished loading
@@ -175,55 +47,8 @@ export default function Panorama({ children, ...props }: PanoramaProps) {
     }
   }, [debouncedOnPositionChange]);
 
-  const updatePosition = (key: keyof PanoPosition, value: number) => {
-    const iframe = iframeRef.current;
-    if (!iframe || !iframe.contentWindow) return;
-    let tourbuilder = (iframe.contentWindow as any).tour;
-    if (!tourbuilder || !tourbuilder.pano) return;
-    switch (key) {
-      case "node":
-        tourbuilder.pano.openNext(`{node${value}}`);
-        break;
-      case "fov":
-        tourbuilder.pano.setFov(value);
-        break;
-      case "pan":
-        tourbuilder.pano.setPan(value);
-        break;
-      case "tilt":
-        tourbuilder.pano.setTilt(value);
-        break;
-    }
-  };
-
-  useEffect(() => {
-    if (!props.node) return;
-    updatePosition("node", props.node);
-  }, [props.node]);
-  useEffect(() => {
-    if (!props.fov) return;
-    updatePosition("fov", props.fov);
-  }, [props.fov]);
-  useEffect(() => {
-    if (!props.pan) return;
-    updatePosition("pan", props.pan);
-  }, [props.pan]);
-  useEffect(() => {
-    if (!props.tilt) return;
-    updatePosition("tilt", props.tilt);
-  }, [props.tilt]);
-  useEffect(() => {
-    const iframe = iframeRef.current;
-    if (!iframe || !iframe.contentWindow) return;
-    (iframe.contentWindow as any).tour?.setActiveSingleImage(
-      !!props.singleImage
-    );
-  }, [props.singleImage]);
-  useEffect(() => {
-    const iframe = iframeRef.current;
-    if (!iframe || !iframe.contentWindow) return;
-    (iframe.contentWindow as any).tour?.pano?.setTransition(props.transition);
-  }, [props.transition]);
+  // Controlled props -> iframe pano instance
+  usePanoramaControls(iframeRef, props);
 
   return (
     <iframe
