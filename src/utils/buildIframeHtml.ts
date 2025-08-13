@@ -75,6 +75,11 @@ export function buildIframeHtml(props: PanoramaSerializableProps) {
               if (props.transition) tour.pano.setTransition(props.transition);
               tour.pano.addListener('positionchanged', positionListener);
               tour.pano.addListener('changenode', positionListener);
+              tour.pano.addListener('imagesready', () => {
+                if (window.__imagesReady) {
+                  try { window.__imagesReady(); } catch(e) { console.error(e); }
+                }
+              });
             }
           });
         } catch (e) {

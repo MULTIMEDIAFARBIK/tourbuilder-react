@@ -1,64 +1,63 @@
-import { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import { useEffect, useState } from "react";
 import { useDebouncedCallback } from "./hooks/useDebouncedCallback";
-import { usePanoramaIframe } from "./hooks/usePanoramaIframe";
 import type { PanoramaProps } from "./types";
-import { usePanoramaControls } from "./hooks/usePanoramaControls";
+import { PanoramaFrame } from "./PanoramaFrame";
 
 export default function Panorama({ children, ...props }: PanoramaProps) {
-  const iframeRef = useRef<HTMLIFrameElement>(null);
-  const [mountNode, setMountNode] = useState<HTMLElement | null>(null);
+  const [basepathA, setBasepathA] = useState<string | null>(props.basepath);
+  const [basepathB, setBasepathB] = useState<string | null>(null);
+  const [activeFrame, setActiveFrame] = useState<'A' | 'B'>('A');
 
   const debouncedOnPositionChange = useDebouncedCallback(
     props.onPositionChange,
     150,
   );
 
-  const iframeUrl = usePanoramaIframe(props);
-
   useEffect(() => {
-    const iframe = iframeRef.current;
-    if (!iframe) return;
+    const activeBasepath = activeFrame === 'A' ? basepathA : basepathB;
+    if (props.basepath === activeBasepath) return;
+    const inactiveBasepath = activeFrame === 'A' ? basepathB : basepathA;
+    if (props.basepath === inactiveBasepath) return;
+    if (activeFrame === 'A') setBasepathB(props.basepath); else setBasepathA(props.basepath);
+  }, [props.basepath, activeFrame, basepathA, basepathB]);
 
-    const handleLoad = () => {
-      if (iframe.contentWindow) {
-        // Find the placeholder div inside the iframe to mount the children
-        const doc = iframe.contentWindow.document;
-        setMountNode(doc.getElementById('children-container'));
-        // Pass the debounced callback to the iframe
-        (iframe.contentWindow as any).reportPosition = debouncedOnPositionChange;
+  const handleImagesReady = (id: 'A' | 'B', frameBasepath: string) => {
+    if (frameBasepath !== props.basepath) return; // outdated
+    if (activeFrame === id) return;
+    setActiveFrame(id);
+    setTimeout(() => {
+      if (id === 'A') {
+        if (basepathB && basepathB !== props.basepath) setBasepathB(null);
+      } else {
+        if (basepathA && basepathA !== props.basepath) setBasepathA(null);
       }
-    };
-
-    iframe.addEventListener('load', handleLoad);
-  return () => iframe.removeEventListener('load', handleLoad);
-  }, [iframeUrl, debouncedOnPositionChange]);
-
-  // Keep the callback in sync even if onPositionChange changes after the iframe finished loading
-  useEffect(() => {
-    const iframe = iframeRef.current;
-    if (!iframe || !iframe.contentWindow) return;
-    (iframe.contentWindow as any).reportPosition = debouncedOnPositionChange;
-    // Flush any cached last position if it exists (set before reportPosition became available)
-    const last = (iframe.contentWindow as any).__lastPanoPosition;
-    if (last) {
-      debouncedOnPositionChange(last);
-      (iframe.contentWindow as any).__lastPanoPosition = undefined;
-    }
-  }, [debouncedOnPositionChange]);
-
-  // Controlled props -> iframe pano instance
-  usePanoramaControls(iframeRef, props);
+    }, 250);
+  };
 
   return (
-    <iframe
-      ref={iframeRef}
-      key={props.basepath}
-      title="Panorama Viewer"
-      style={{ border: "none", width: "100%", height: "100%" }}
-      src={iframeUrl}
-    >
-      {mountNode && children && createPortal(children, mountNode)}
-    </iframe>
+    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+      <PanoramaFrame
+        id="A"
+        basepath={basepathA}
+        active={activeFrame === 'A'}
+        panoramaProps={props}
+        desiredBasepath={props.basepath}
+        debouncedOnPositionChange={debouncedOnPositionChange as any}
+        onImagesReady={handleImagesReady}
+      >
+        {children}
+      </PanoramaFrame>
+      <PanoramaFrame
+        id="B"
+        basepath={basepathB}
+        active={activeFrame === 'B'}
+        panoramaProps={props}
+        desiredBasepath={props.basepath}
+        debouncedOnPositionChange={debouncedOnPositionChange as any}
+        onImagesReady={handleImagesReady}
+      >
+        {children}
+      </PanoramaFrame>
+    </div>
   );
 }

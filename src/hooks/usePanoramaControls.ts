@@ -7,10 +7,12 @@ import type { PanoramaProps, PanoPosition } from "../types";
  */
 export function usePanoramaControls(
   iframeRef: MutableRefObject<HTMLIFrameElement | null>,
-  props: PanoramaProps,
+  props: PanoramaProps | null,
+  enabled: boolean = true,
 ) {
   const updatePosition = useCallback(
     (key: keyof PanoPosition, value: number) => {
+      if (!enabled || !props) return;
       const iframe = iframeRef.current;
       if (!iframe || !iframe.contentWindow) return;
       const tourbuilder = (iframe.contentWindow as any).tour;
@@ -35,38 +37,40 @@ export function usePanoramaControls(
 
   // Individual effects for each controlled value (allow 0 values)
   useEffect(() => {
-    if (props.node == null) return;
+    if (!enabled || !props || props.node == null) return;
     updatePosition("node", props.node);
-  }, [props.node, updatePosition]);
+  }, [props?.node, enabled, updatePosition]);
 
   useEffect(() => {
-    if (props.fov == null) return;
+    if (!enabled || !props || props.fov == null) return;
     updatePosition("fov", props.fov);
-  }, [props.fov, updatePosition]);
+  }, [props?.fov, enabled, updatePosition]);
 
   useEffect(() => {
-    if (props.pan == null) return;
+    if (!enabled || !props || props.pan == null) return;
     updatePosition("pan", props.pan);
-  }, [props.pan, updatePosition]);
+  }, [props?.pan, enabled, updatePosition]);
 
   useEffect(() => {
-    if (props.tilt == null) return;
+    if (!enabled || !props || props.tilt == null) return;
     updatePosition("tilt", props.tilt);
-  }, [props.tilt, updatePosition]);
+  }, [props?.tilt, enabled, updatePosition]);
 
   // Single image toggle
   useEffect(() => {
+    if (!enabled || !props) return;
     const iframe = iframeRef.current;
     if (!iframe || !iframe.contentWindow) return;
     (iframe.contentWindow as any).tour?.setActiveSingleImage(!!props.singleImage);
-  }, [props.singleImage, iframeRef]);
+  }, [props?.singleImage, iframeRef, enabled]);
 
   // Transition updates
   useEffect(() => {
+    if (!enabled || !props) return;
     const iframe = iframeRef.current;
     if (!iframe || !iframe.contentWindow) return;
     (iframe.contentWindow as any).tour?.pano?.setTransition(props.transition);
-  }, [props.transition, iframeRef]);
+  }, [props?.transition, iframeRef, enabled]);
 
-  return { updatePosition };
+  return { updatePosition: enabled ? updatePosition : () => {} };
 }
